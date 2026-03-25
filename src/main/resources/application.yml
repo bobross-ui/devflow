@@ -13,3 +13,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   application:
     name: devflow
+jwt:
+  secret: "b8dfd29b2dd922fd494fb63a427e519dfaabc4489a4ade985c8eaaaef051a0f5272fd75ddda34211039997f8896b5f3693cd92eb75ea2bf786884aa0e31b9b36"
+  access-expiry-ms: 900000
+  refresh-expiry-days: 7

@@ -3,8 +3,11 @@ package com.example.devflow.auth.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.devflow.auth.dto.LoginRequest;
 import com.example.devflow.auth.dto.RegisterRequest;
+import com.example.devflow.auth.dto.TokenResponse;
 import com.example.devflow.auth.dto.UserResponse;
+import com.example.devflow.auth.service.AuthService;
 import com.example.devflow.user.entity.User;
 import com.example.devflow.user.service.UserService;
 
@@ -22,11 +25,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserService userService;
+    private final AuthService authService;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        User user = userService.register(request.getEmail(),request.getPassword(),request.getDisplayName());
+        User user = authService.register(request.getEmail(),request.getPassword(),request.getDisplayName());
         
         UserResponse response = UserResponse.builder()
                                 .id(user.getId())
@@ -38,6 +41,12 @@ public class AuthController {
                                 .build();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+        TokenResponse response = authService.login(request.getEmail(), request.getPassword());
+        return ResponseEntity.ok(response);
     }
     
 
