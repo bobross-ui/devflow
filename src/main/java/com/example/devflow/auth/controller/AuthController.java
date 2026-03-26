@@ -7,6 +7,7 @@ import com.example.devflow.auth.dto.LoginRequest;
 import com.example.devflow.auth.dto.RegisterRequest;
 import com.example.devflow.auth.dto.TokenResponse;
 import com.example.devflow.auth.dto.UserResponse;
+import com.example.devflow.auth.filter.CustomUserDetails;
 import com.example.devflow.auth.service.AuthService;
 import com.example.devflow.user.entity.User;
 import com.example.devflow.user.service.UserService;
@@ -16,9 +17,10 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -26,19 +28,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        User user = authService.register(request.getEmail(),request.getPassword(),request.getDisplayName());
-        
+        User user = authService.register(request.getEmail(), request.getPassword(), request.getDisplayName());
+
         UserResponse response = UserResponse.builder()
-                                .id(user.getId())
-                                .email(user.getEmail())
-                                .displayName(user.getDisplayName())
-                                .weeklyGoalHours(user.getWeeklyGoalHours())
-                                .preferredReportDay(user.getPreferredReportDay())
-                                .createdAt(user.getCreatedAt())
-                                .build();
+                .id(user.getId())
+                .email(user.getEmail())
+                .displayName(user.getDisplayName())
+                .weeklyGoalHours(user.getWeeklyGoalHours())
+                .preferredReportDay(user.getPreferredReportDay())
+                .createdAt(user.getCreatedAt())
+                .build();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -48,6 +51,22 @@ public class AuthController {
         TokenResponse response = authService.login(request.getEmail(), request.getPassword());
         return ResponseEntity.ok(response);
     }
-    
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userService.findById(userDetails.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        UserResponse response = UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .displayName(user.getDisplayName())
+                .weeklyGoalHours(user.getWeeklyGoalHours())
+                .preferredReportDay(user.getPreferredReportDay())
+                .createdAt(user.getCreatedAt())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
 
 }

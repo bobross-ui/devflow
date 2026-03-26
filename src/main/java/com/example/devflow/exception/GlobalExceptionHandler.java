@@ -7,15 +7,17 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
         String message = ex.getBindingResult().getFieldError().getDefaultMessage();
-        
+
         ErrorResponse error = ErrorResponse.builder()
                 .status(400)
                 .error("VALIDATION_FAILED")
@@ -23,12 +25,13 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
-        
+
         return ResponseEntity.badRequest().body(error);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex,
+            HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
                 .status(400)
                 .error("BAD_REQUEST")
@@ -36,7 +39,20 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
-        
+
         return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ErrorResponse> handleJwtException(JwtException ex, HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .status(401)
+                .error("UNAUTHORIZED")
+                .message("Invalid or expired token")
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(401).body(error);
     }
 }
