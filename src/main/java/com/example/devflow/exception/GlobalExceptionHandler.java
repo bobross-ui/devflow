@@ -2,85 +2,80 @@ package com.example.devflow.exception;
 
 import java.time.LocalDateTime;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex,
-            HttpServletRequest request) {
-        String message = ex.getBindingResult().getFieldError().getDefaultMessage();
+        private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error,
+                        String message, HttpServletRequest request) {
+                ErrorResponse body = ErrorResponse.builder()
+                                .status(status.value())
+                                .error(error)
+                                .message(message)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .build();
+                return ResponseEntity.status(status).body(body);
+        }
 
-        ErrorResponse error = ErrorResponse.builder()
-                .status(400)
-                .error("VALIDATION_FAILED")
-                .message(message)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<ErrorResponse> handleValidation(
+                        MethodArgumentNotValidException ex, HttpServletRequest request) {
+                String message = ex.getBindingResult().getFieldErrors().stream()
+                                .map(e -> e.getField() + " " + e.getDefaultMessage())
+                                .findFirst()
+                                .orElse("Validation failed");
+                return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", message, request);
+        }
 
-        return ResponseEntity.badRequest().body(error);
-    }
+        @ExceptionHandler(InvalidCredentialsException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidCredentials(
+                        InvalidCredentialsException ex, HttpServletRequest request) {
+                return buildResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request);
+        }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex,
-            HttpServletRequest request) {
-        ErrorResponse error = ErrorResponse.builder()
-                .status(400)
-                .error("BAD_REQUEST")
-                .message(ex.getMessage())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
+        @ExceptionHandler(EntityNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleNotFound(
+                        EntityNotFoundException ex, HttpServletRequest request) {
+                return buildResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request);
+        }
 
-        return ResponseEntity.badRequest().body(error);
-    }
+        @ExceptionHandler(InvalidStateTransitionException.class)
+        public ResponseEntity<ErrorResponse> handleStateTransition(
+                        InvalidStateTransitionException ex, HttpServletRequest request) {
+                return buildResponse(HttpStatus.CONFLICT, "INVALID_STATE_TRANSITION", ex.getMessage(), request);
+        }
 
-    @ExceptionHandler(JwtException.class)
-    public ResponseEntity<ErrorResponse> handleJwtException(JwtException ex, HttpServletRequest request) {
-        ErrorResponse error = ErrorResponse.builder()
-                .status(401)
-                .error("UNAUTHORIZED")
-                .message("Invalid or expired token")
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        public ResponseEntity<ErrorResponse> handleMalformedJson(
+                        HttpMessageNotReadableException ex, HttpServletRequest request) {
+                return buildResponse(HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST",
+                                "Request body is malformed or missing", request);
+        }
 
-        return ResponseEntity.status(401).body(error);
-    }
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ErrorResponse> handleGeneric(
+                        Exception ex, HttpServletRequest request) {
+                log.error("Unhandled exception on {}: {}", request.getRequestURI(), ex.getMessage(), ex);
+                return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
+                                "An unexpected error occurred", request);
+        }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex,
-            HttpServletRequest request) {
-        ErrorResponse error = ErrorResponse.builder()
-                .status(404)
-                .error("NOT_FOUND")
-                .message(ex.getMessage())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return ResponseEntity.status(404).body(error);
-    }
-
-    @ExceptionHandler(InvalidStateTransitionException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidStateTransitionException(InvalidStateTransitionException ex,
-            HttpServletRequest request) {
-        ErrorResponse error = ErrorResponse.builder()
-                .status(409)
-                .error("CONFLICT")
-                .message(ex.getMessage())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return ResponseEntity.status(409).body(error);
-    }
+        @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+        public ResponseEntity<ErrorResponse> handleMethodNotSupported(
+                        HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+                return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED",
+                                ex.getMethod() + " method is not supported for this endpoint", request);
+        }
 }

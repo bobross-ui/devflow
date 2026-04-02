@@ -10,12 +10,15 @@ import com.example.devflow.session.dto.SessionResponse;
 import com.example.devflow.session.dto.UpdateSessionRequest;
 import com.example.devflow.session.entity.CodingSession;
 import com.example.devflow.session.service.SessionService;
+import com.example.devflow.tag.entity.Tag;
 import com.example.devflow.user.entity.User;
 import com.example.devflow.user.service.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +56,9 @@ public class SessionController {
                 .durationSeconds(session.getDurationSeconds())
                 .createdAt(session.getCreatedAt())
                 .updatedAt(session.getUpdatedAt())
+                .tags(session.getTags().stream()
+                        .map(Tag::getName)
+                        .collect(Collectors.toSet()))
                 .build();
     }
 

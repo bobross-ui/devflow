@@ -4,13 +4,12 @@ import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 
+import com.example.devflow.exception.EntityNotFoundException;
 import com.example.devflow.exception.InvalidStateTransitionException;
 import com.example.devflow.session.entity.CodingSession;
 import com.example.devflow.session.entity.SessionStatus;
 import com.example.devflow.session.repository.CodingSessionRepository;
 import com.example.devflow.user.entity.User;
-
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
