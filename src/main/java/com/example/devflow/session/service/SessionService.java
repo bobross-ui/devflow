@@ -2,6 +2,9 @@ package com.example.devflow.session.service;
 
 import java.time.LocalDateTime;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.example.devflow.exception.EntityNotFoundException;
@@ -9,6 +12,7 @@ import com.example.devflow.exception.InvalidStateTransitionException;
 import com.example.devflow.session.entity.CodingSession;
 import com.example.devflow.session.entity.SessionStatus;
 import com.example.devflow.session.repository.CodingSessionRepository;
+import com.example.devflow.session.repository.SessionSpecification;
 import com.example.devflow.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +32,7 @@ public class SessionService {
                 .status(SessionStatus.ACTIVE)
                 .startedAt(LocalDateTime.now())
                 .build();
-                
+
         return sessionRepository.save(session);
     }
 
@@ -40,10 +44,10 @@ public class SessionService {
     public CodingSession updateSession(Long sessionId, Long userId, String title, String notes) {
         CodingSession session = getSessionByIdAndUser(sessionId, userId);
 
-        if(title != null) {
+        if (title != null) {
             session.setTitle(title);
         }
-        if(notes != null) {
+        if (notes != null) {
             session.setNotes(notes);
         }
 
@@ -60,8 +64,7 @@ public class SessionService {
 
         if (session.getStatus() != SessionStatus.ACTIVE) {
             throw new InvalidStateTransitionException(
-                "Cannot pause session that is not in ACTIVE state. Current state: " + session.getStatus()
-            );
+                    "Cannot pause session that is not in ACTIVE state. Current state: " + session.getStatus());
         }
 
         session.setStatus(SessionStatus.PAUSED);
@@ -71,10 +74,9 @@ public class SessionService {
     public CodingSession resumeSession(Long sessionId, Long userId) {
         CodingSession session = getSessionByIdAndUser(sessionId, userId);
 
-        if(session.getStatus() != SessionStatus.PAUSED) {
+        if (session.getStatus() != SessionStatus.PAUSED) {
             throw new InvalidStateTransitionException(
-                "Cannot resume session that is not PAUSED state. Current state: " + session.getStatus()
-            );
+                    "Cannot resume session that is not PAUSED state. Current state: " + session.getStatus());
         }
 
         session.setStatus(SessionStatus.ACTIVE);
@@ -84,10 +86,9 @@ public class SessionService {
     public CodingSession completeSession(Long sessionId, Long userId) {
         CodingSession session = getSessionByIdAndUser(sessionId, userId);
 
-        if(session.getStatus() == SessionStatus.COMPLETED) {
+        if (session.getStatus() == SessionStatus.COMPLETED) {
             throw new InvalidStateTransitionException(
-                "Cannot complete a session that is already completed"
-            );
+                    "Cannot complete a session that is already completed");
         }
 
         session.setStatus(SessionStatus.COMPLETED);
@@ -95,10 +96,29 @@ public class SessionService {
 
         long durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
                 session.getStartedAt(),
-                session.getEndedAt()
-        );
+                session.getEndedAt());
         session.setDurationSeconds(durationSeconds);
 
         return sessionRepository.save(session);
     }
+
+    public Page<CodingSession> listSessions(Long userId, String keyword,
+            String tag, SessionStatus status, Pageable pageable) {
+
+        // Always start with user filter — every query is scoped to the logged-in user
+        Specification<CodingSession> spec = Specification.where(SessionSpecification.hasUser(userId));
+
+        // Only add each filter if it was actually provided in the request
+        if (keyword != null && !keyword.isBlank()) {
+            spec = spec.and(SessionSpecification.hasKeyword(keyword));
+        }
+        if (tag != null && !tag.isBlank()) {
+            spec = spec.and(SessionSpecification.hasTag(tag));
+        }
+        if (status != null) {
+            spec = spec.and(SessionSpecification.hasStatus(status));
+        }
+
+        return sessionRepository.findAll(spec, pageable);
+    };
 }

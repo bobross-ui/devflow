@@ -19,6 +19,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
@@ -33,7 +34,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "coding_session")
+@Table(name = "coding_session", indexes = {
+        @Index(name = "idx_session_title", columnList = "title"),
+        @Index(name = "idx_session_user_status", columnList = "user_id, status"),
+        @Index(name = "idx_session_user_created", columnList = "user_id, created_at")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -60,7 +65,7 @@ public class CodingSession {
 
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
-    
+
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
 
@@ -77,12 +82,8 @@ public class CodingSession {
     @Builder.Default
     private List<Task> tasks = new ArrayList<>();
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-        name = "coding_session_tags",
-        joinColumns = @JoinColumn(name = "session_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
+    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinTable(name = "coding_session_tags", joinColumns = @JoinColumn(name = "session_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
     @Builder.Default
     private Set<Tag> tags = new HashSet<>();
 

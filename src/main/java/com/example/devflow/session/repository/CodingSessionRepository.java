@@ -4,12 +4,13 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import com.example.devflow.session.entity.CodingSession;
 
 @Repository
-public interface CodingSessionRepository extends JpaRepository<CodingSession, Long> {
+public interface CodingSessionRepository extends JpaRepository<CodingSession, Long>, JpaSpecificationExecutor<CodingSession> {
 
     List<CodingSession> findByUserId(Long userId);
 
