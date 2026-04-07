@@ -2,6 +2,8 @@ package com.example.devflow.task.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.example.devflow.exception.EntityNotFoundException;
@@ -39,9 +41,9 @@ public class TaskService {
     }
 
     // Get all tasks for a session
-    public List<Task> getTasksBySession(Long sessionId, Long userId) {
+    public Page<Task> getTasksBySession(Long sessionId, Long userId, Pageable pageable) {
         validateSessionOwnership(sessionId, userId);
-        return taskRepository.findBySessionId(sessionId);
+        return taskRepository.findBySessionId(sessionId, pageable);
     }
 
     // Get a specific task (with ownership check)

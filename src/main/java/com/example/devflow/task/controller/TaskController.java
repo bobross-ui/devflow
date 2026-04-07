@@ -1,8 +1,13 @@
 package com.example.devflow.task.controller;
 
+import com.example.devflow.DevflowApplication;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.devflow.auth.filter.CustomUserDetails;
@@ -33,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 public class TaskController {
     
     private final TaskService taskService;
+
     
     // Helper method to convert entity to DTO
     private TaskResponse toResponse(Task task) {
@@ -57,16 +64,16 @@ public class TaskController {
     
     // GET /sessions/{sessionId}/tasks - List all tasks for a session
     @GetMapping
-    public ResponseEntity<List<TaskResponse>> getTasksBySession(
+    public ResponseEntity<Page<TaskResponse>> getTasksBySession(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long sessionId) {
+            @PathVariable Long sessionId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         
-        List<Task> tasks = taskService.getTasksBySession(sessionId, userDetails.getUserId());
-        List<TaskResponse> responses = tasks.stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(page,size,Sort.by("createdAt").ascending());
         
-        return ResponseEntity.ok(responses);
+        Page<Task> tasks = taskService.getTasksBySession(sessionId, userDetails.getUserId(), pageable);
+        return ResponseEntity.ok(tasks.map(this::toResponse));
     }
     
     // PATCH /sessions/{sessionId}/tasks/{taskId} - Update a task
