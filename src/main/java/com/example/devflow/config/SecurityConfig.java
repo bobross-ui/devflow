@@ -1,6 +1,5 @@
 package com.example.devflow.config;
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,6 +12,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.example.devflow.auth.filter.JwtAuthFilter;
 import com.example.devflow.ratelimit.RateLimitFilter;
+import com.example.devflow.logging.CorrelationIdFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final CorrelationIdFilter correlationIdFilter;
     private final RateLimitFilter rateLimitFilter;
     private final JwtAuthFilter jwtAuthFilter;
 
@@ -37,6 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         // All other endpoints require authentication
                         .anyRequest().authenticated())
+                .addFilterBefore(correlationIdFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 // Add JWT filter before the default authentication filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
